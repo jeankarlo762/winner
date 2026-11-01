@@ -264,3 +264,7 @@ textarea.input { min-height: 96px; padding: 12px 14px; resize: vertical; color: 
 .setup.cur { outline: 2px solid var(--accent); }
 .setup.cur .n { background: var(--accent); color: #fff; }
 .skeleton { height: 64px; border-radius: 16px; background: var(--surface); margin-top: 12px; }
+.block.task { border-left-style: dashed; align-items: center; gap: 12px; background: color-mix(in srgb, var(--cat) 7%, var(--bg)); }
+.block.task .check { width: 24px; height: 24px; }
+.done .block.task .t { text-decoration: line-through; color: var(--muted); }
+.done .block.task .check { background: var(--accent); border-color: var(--accent); color: #fff; }

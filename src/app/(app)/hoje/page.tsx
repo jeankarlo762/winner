@@ -6,7 +6,8 @@ import { useUser } from "@/components/Shell";
 import { useUI } from "@/components/UI";
 import { api, greeting, hhmm, longDate, notifyChanged, nowMinutes, useData } from "@/lib/client";
 import { toMinutes } from "@/lib/dates";
-import type { Activity, BadHabit, GoodHabit, TodayData } from "@/lib/types";
+import { dayPlan } from "@/lib/dayplan";
+import type { BadHabit, GoodHabit, TodayData } from "@/lib/types";
 import { TaskRow } from "../tarefas/TaskRow";
 
 function Ring({ value, max, color }: { value: number; max: number; color: string }) {
@@ -19,7 +20,6 @@ function Ring({ value, max, color }: { value: number; max: number; color: string
   );
 }
 
-const endOf = (a: Activity) => (toMinutes(a.end_time) <= toMinutes(a.start_time) ? toMinutes(a.end_time) + 1440 : toMinutes(a.end_time));
 
 export default function Hoje() {
   const user = useUser();
@@ -34,12 +34,16 @@ export default function Hoje() {
   if (!data) return <><div className="skeleton" style={{ height: 80 }} /><div className="skeleton" style={{ height: 160 }} /><div className="skeleton" style={{ height: 200 }} /></>;
 
   const dow = new Date().getDay();
-  const todays = data.routine.filter((a) => a.weekdays.includes(dow)).sort((a, b) => toMinutes(a.start_time) - toMinutes(b.start_time));
+  const todays = dayPlan(data.routine, data.tasks, data.today, dow).items;
   const yesterday = (dow + 6) % 7;
   const overnight = data.routine.find((a) => a.weekdays.includes(yesterday) && toMinutes(a.end_time) <= toMinutes(a.start_time) && now < toMinutes(a.end_time));
-  const current = overnight ?? todays.find((a) => toMinutes(a.start_time) <= now && now < endOf(a));
-  const next = todays.filter((a) => toMinutes(a.start_time) > now).slice(0, 3);
-  const passed = todays.filter((a) => endOf(a) <= now).length;
+  const inProgress = todays.filter((p) => p.s <= now && now < p.e);
+  // Uma tarefa em andamento tem prioridade sobre o bloco da rotina em que ela cai.
+  const currentItem = inProgress.find((p) => p.kind === "task") ?? inProgress[0];
+  const current = overnight ? { title: overnight.title, start_time: overnight.start_time, end_time: overnight.end_time } : currentItem ? { title: currentItem.title, start_time: currentItem.start, end_time: currentItem.end } : null;
+  const currentTask = !overnight ? currentItem?.task : undefined;
+  const next = todays.filter((p) => p.s > now).slice(0, 3);
+  const passed = todays.filter((p) => p.e <= now).length;
   const tasksDone = data.tasks.filter((t) => t.done).length;
   const good = data.habits.filter((h): h is GoodHabit => h.kind !== "bad");
   const bad = data.habits.filter((h): h is BadHabit => h.kind === "bad").sort((a, b) => b.cleanDays - a.cleanDays);
@@ -50,7 +54,7 @@ export default function Hoje() {
   let pct = 0, left = 0;
   if (current) {
     const s = toMinutes(current.start_time);
-    const e = endOf(current);
+    const e = toMinutes(current.end_time) <= s ? toMinutes(current.end_time) + 1440 : toMinutes(current.end_time);
     const n = overnight ? now + 1440 : now;
     pct = Math.round(((n - s) / (e - s)) * 100);
     left = e - n;
@@ -87,7 +91,7 @@ export default function Hoje() {
       <div className="card-navy" style={{ marginTop: 16 }}>
         {current ? (
           <>
-            <div className="between"><span className="eyebrow" style={{ color: "var(--navy-muted)" }}>Agora</span><span className="muted num" style={{ fontSize: 13 }}>{current.start_time} – {current.end_time}</span></div>
+            <div className="between"><span className="eyebrow" style={{ color: "var(--navy-muted)" }}>{currentTask ? "Agora · tarefa" : "Agora"}</span><span className="muted num" style={{ fontSize: 13 }}>{current.start_time} – {current.end_time}</span></div>
             <div className="now-time" style={{ margin: "6px 0 12px" }}>{current.title}</div>
             <div className="progress"><i style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} /></div>
             <p className="muted num" style={{ fontSize: 12.5, margin: "8px 0 0" }}>{left >= 60 ? `${Math.floor(left / 60)}h${left % 60 ? String(left % 60).padStart(2, "0") : ""}` : `${left} min`} restantes</p>
@@ -96,11 +100,11 @@ export default function Hoje() {
           <>
             <span className="eyebrow" style={{ color: "var(--navy-muted)" }}>Agora · {hhmm(new Date())}</span>
             <div className="now-time" style={{ margin: "6px 0 4px" }}>Tempo livre</div>
-            <p className="muted" style={{ margin: 0, fontSize: 13.5 }}>{todays.length ? "Nenhuma atividade fixa neste horário." : "Você ainda não tem atividades na rotina de hoje."}</p>
+            <p className="muted" style={{ margin: 0, fontSize: 13.5 }}>{todays.length ? "Nada da rotina neste horário." : "Você ainda não tem nada na rotina de hoje."}</p>
           </>
         )}
         {next.length > 0 && (
-          <div className="next-list">{next.map((r) => <div key={r.id}><span className="num">{r.start_time}</span><span>{r.title}</span></div>)}</div>
+          <div className="next-list">{next.map((p) => <div key={p.key}><span className="num">{p.start}</span><span>{p.title}{p.kind === "task" ? " · tarefa" : ""}</span></div>)}</div>
         )}
         {!todays.length && <Link href="/rotina" className="link" style={{ color: "#fff", display: "inline-block", marginTop: 12 }}>Montar rotina</Link>}
       </div>
