@@ -128,3 +128,10 @@ create table if not exists notes (
   updated_at timestamptz not null default now()
 );
 create index if not exists notes_user_idx on notes(user_id);
+
+-- Token só de leitura usado pelo widget do iPhone (Scriptable). Guardamos o sha256.
+create table if not exists widget_tokens (
+  id text primary key,
+  user_id uuid not null unique references users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);

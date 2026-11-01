@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs";
 // Teste de ponta a ponta: cadastro, Face ID (autenticador virtual), onboarding, módulos e login.
 // Uso: BASE=http://localhost:3000 node tests/e2e/fluxo.mjs [pasta-para-prints]
 import { createRequire } from "node:module";
@@ -176,6 +177,24 @@ await shot("14-hoje-escuro");
 const theme = await page.evaluate(() => document.documentElement.dataset.theme);
 step("tema escuro: " + theme);
 // Sem toque do usuário, o Face ID do preenchimento automático fica esperando (como no iPhone).
+// Widget do iPhone: gera o script e lê os dados com o token dele.
+await page.goto(BASE + "/perfil");
+await page.click("text=Widget no iPhone");
+await page.click("button:has-text('Gerar e copiar script')");
+const script = await page.locator("textarea.code").inputValue();
+await shot("15-widget");
+const token = script.match(/wgt_[A-Za-z0-9_-]+/)[0];
+writeFileSync(SHOTS + "/widget.js", script);
+const kinds = {};
+for (const tipo of ["tarefas", "rotina", "habitos"]) {
+  const r = await page.request.get(BASE + `/api/widget?tipo=${tipo}&agora=00:01`, { headers: { authorization: "Bearer " + token } });
+  if (!r.ok()) throw new Error("widget " + tipo + " " + r.status());
+  const j = await r.json();
+  kinds[tipo] = j.items.length;
+}
+const bad = await page.request.get(BASE + "/api/widget?tipo=tarefas", { headers: { authorization: "Bearer wgt_errado" } });
+if (bad.status() !== 401) throw new Error("token inválido aceito");
+step(`widget: tarefas ${kinds.tarefas}, rotina ${kinds.rotina}, hábitos ${kinds.habitos} (token errado recusado)`);
 await cdp.send("WebAuthn.setAutomaticPresenceSimulation", { authenticatorId, enabled: false });
 await page.goto(BASE + "/perfil");
 await page.click("text=Sair");

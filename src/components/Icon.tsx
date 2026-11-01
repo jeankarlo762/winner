@@ -13,6 +13,7 @@ const P: Record<string, string> = {
   back: '<path d="m15 5-7 7 7 7"/>',
   "chevron-left": '<path d="m15 5-7 7 7 7"/>',
   "chevron-right": '<path d="m9 5 7 7-7 7"/>',
+  grid: '<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>',
   right: '<path d="m9 5 7 7-7 7"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   pin: '<path d="M9 4h6l-1 6 4 3H6l4-3zM12 13v7"/>',

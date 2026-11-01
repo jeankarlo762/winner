@@ -97,6 +97,7 @@ export default function Perfil() {
       <div className="menu">
         <Link href="/lembretes"><span className="ic"><Icon name="bell" /></span><span className="grow">Lembretes</span><Icon name="right" /></Link>
         <Link href="/notas"><span className="ic"><Icon name="note" /></span><span className="grow">Notas</span><Icon name="right" /></Link>
+        <Link href="/widget"><span className="ic"><Icon name="grid" /></span><span className="grow">Widget no iPhone</span><Icon name="right" /></Link>
         <Link href="/montagem"><span className="ic"><Icon name="target" /></span><span className="grow">Montagem inicial</span><Icon name="right" /></Link>
       </div>
 
