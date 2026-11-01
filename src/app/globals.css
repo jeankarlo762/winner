@@ -268,3 +268,21 @@ textarea.input { min-height: 96px; padding: 12px 14px; resize: vertical; color: 
 .block.task .check { width: 24px; height: 24px; }
 .done .block.task .t { text-decoration: line-through; color: var(--muted); }
 .done .block.task .check { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* calendário da rotina */
+.cal { margin-top: 16px; padding: 10px 10px 12px; }
+.cal-head { padding: 0 2px 6px; }
+.cal-title { font-family: var(--f-display); font-size: 16px; text-transform: capitalize; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-wd { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+.cal-day { aspect-ratio: 1; max-height: 52px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--fg); }
+.cal-day b { font-size: 14.5px; font-weight: 600; }
+.cal-day.out { color: var(--muted); opacity: .55; }
+.cal-day.today { box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-day[aria-pressed="true"] { background: var(--accent); color: #fff; opacity: 1; }
+.cal-day .dots { display: flex; gap: 3px; height: 5px; }
+.cal-day .dots i { width: 5px; height: 5px; border-radius: 50%; }
+.cal-day .dots i.r { background: var(--muted); }
+.cal-day .dots i.t { background: var(--accent); }
+.cal-day[aria-pressed="true"] .dots i { background: #fff; }
+@media (min-width: 900px) { .cal-day { max-height: 64px; } }

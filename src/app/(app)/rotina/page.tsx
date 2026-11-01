@@ -5,11 +5,21 @@ import { useUI } from "@/components/UI";
 import { SetupNext } from "@/components/SetupNext";
 import { CATEGORIES } from "@/components/CreateSheet";
 import { api, notifyChanged, nowMinutes, useData } from "@/lib/client";
-import { localToday } from "@/lib/dates";
+import { addDays, localToday, weekday, type ISODate } from "@/lib/dates";
+import { isDueOn } from "@/lib/recurrence";
 import { conflicts, dayPlan, type PlanItem } from "@/lib/dayplan";
 import type { Activity, Task } from "@/lib/types";
 
 const LETTER = ["D", "S", "T", "Q", "Q", "S", "S"];
+const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+/** Grade do mês: começa no domingo da primeira semana e cobre 6 semanas. */
+function monthGrid(year: number, month: number): ISODate[] {
+  const first = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const start = addDays(first, -weekday(first));
+  return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+}
 const CAT = Object.fromEntries(CATEGORIES);
 
 function duration(p: PlanItem) {
@@ -21,15 +31,30 @@ export default function Rotina() {
   const { openSheet, toast } = useUI();
   const { data } = useData<Activity[]>("/api/routine");
   const tasks = useData<Task[]>("/api/tasks");
-  const today = new Date();
-  const [day, setDay] = useState(today.getDay());
-  const week = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - today.getDay() + i);
-    return d;
-  });
-  const date = localToday(week[day]);
-  const isToday = day === today.getDay();
+  const todayISO = localToday();
+  const [date, setDate] = useState<ISODate>(todayISO);
+  const [view, setView] = useState(() => ({ y: Number(todayISO.slice(0, 4)), m: Number(todayISO.slice(5, 7)) - 1 }));
+  const day = weekday(date);
+  const isToday = date === todayISO;
+  const grid = monthGrid(view.y, view.m);
+  const monthPrefix = `${view.y}-${String(view.m + 1).padStart(2, "0")}`;
+  function shift(n: number) {
+    setView((v) => {
+      const m = v.m + n;
+      return { y: v.y + Math.floor(m / 12), m: ((m % 12) + 12) % 12 };
+    });
+  }
+  function pick(d: ISODate) {
+    setDate(d);
+    if (!d.startsWith(monthPrefix)) setView({ y: Number(d.slice(0, 4)), m: Number(d.slice(5, 7)) - 1 });
+  }
+  function goToday() {
+    pick(todayISO);
+    setView({ y: Number(todayISO.slice(0, 4)), m: Number(todayISO.slice(5, 7)) - 1 });
+  }
+  const taskCount = (d: ISODate) => (tasks.data ?? []).filter((t) => isDueOn(t, d)).length;
+  const hasRoutine = (d: ISODate) => (data ?? []).some((a) => a.weekdays.includes(weekday(d)));
+
   const { items: list, untimed } = dayPlan(data ?? [], tasks.data ?? [], date, day);
   const clash = conflicts(list);
   const now = nowMinutes();
@@ -54,13 +79,37 @@ export default function Rotina() {
         </div>
         <button className="icon-btn" onClick={() => openSheet("atividade")} aria-label="Adicionar à rotina"><Icon name="plus" /></button>
       </div>
-      <div className="daypick" role="group" aria-label="Dia da semana">
-        {week.map((d, i) => (
-          <button key={i} aria-pressed={day === i} onClick={() => setDay(i)}>
-            {LETTER[i]}
-            <b className="num">{d.getDate()}</b>
-          </button>
-        ))}
+      <div className="cal card">
+        <div className="between cal-head">
+          <button className="icon-btn" onClick={() => shift(-1)} aria-label="Mês anterior"><Icon name="chevron-left" /></button>
+          <b className="cal-title">{MONTHS[view.m]} {view.y}</b>
+          <button className="icon-btn" onClick={() => shift(1)} aria-label="Próximo mês"><Icon name="chevron-right" /></button>
+        </div>
+        <div className="cal-grid" role="grid" aria-label="Calendário">
+          {LETTER.map((l, i) => <span key={"h" + i} className="cal-wd">{l}</span>)}
+          {grid.map((d) => {
+            const n = taskCount(d);
+            return (
+              <button
+                key={d}
+                className={`cal-day ${d.startsWith(monthPrefix) ? "" : "out"} ${d === todayISO ? "today" : ""}`}
+                aria-pressed={d === date}
+                aria-label={`${Number(d.slice(8))} de ${MONTHS[Number(d.slice(5, 7)) - 1]}${n ? `, ${n} tarefa${n > 1 ? "s" : ""}` : ""}`}
+                onClick={() => pick(d)}
+              >
+                <b className="num">{Number(d.slice(8))}</b>
+                <span className="dots">
+                  {hasRoutine(d) && <i className="r" />}
+                  {n > 0 && <i className="t" />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="between" style={{ marginTop: 18 }}>
+        <p className="eyebrow">{isToday ? "Hoje · " : ""}{WEEKDAYS[day]}, {Number(date.slice(8))} de {MONTHS[Number(date.slice(5, 7)) - 1]}</p>
+        {!isToday && <button className="link" onClick={goToday}>Ir para hoje</button>}
       </div>
       {clash.length > 0 && (
         <div className="conflict" role="status">

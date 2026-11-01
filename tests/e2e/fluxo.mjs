@@ -69,6 +69,12 @@ await page.waitForSelector(".block");
 await shot("07-rotina");
 const blocks = await page.locator(".block").count();
 step(`rotina sugerida com ${blocks} atividades no dia`);
+await page.click("[aria-label='Próximo mês']");
+await page.locator(".cal-day:not(.out)").nth(14).click();
+await page.waitForSelector("text=Ir para hoje");
+await shot("07b-calendario");
+await page.click("text=Ir para hoje");
+step(`calendário: ${await page.locator(".cal-day").count()} dias, navegação de mês ok`);
 await page.click("[aria-label='Adicionar à rotina']");
 await page.fill("#f-title", "Inglês");
 await page.fill("#f-s", "19:30");
@@ -196,7 +202,8 @@ step("login com Face ID (passkey)");
 // Sessão expirada / app reaberto: com Face ID configurado, entra sozinho sem perguntar.
 await ctx.clearCookies();
 await page.evaluate(() => sessionStorage.clear());
-await page.goto(BASE + "/login");
+// O Face ID automático pode trocar de página antes do "load" da tela de login.
+await page.goto(BASE + "/login", { waitUntil: "commit" }).catch(() => {});
 await page.waitForURL(/hoje/, { timeout: 10000 });
 step("app reaberto entra direto com Face ID");
 

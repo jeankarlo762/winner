@@ -11,6 +11,8 @@ const P: Record<string, string> = {
   moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   face: '<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 9.5v1M15 9.5v1M12 9.5v4h-1M9.5 16c1.5 1 3.5 1 5 0"/>',
   back: '<path d="m15 5-7 7 7 7"/>',
+  "chevron-left": '<path d="m15 5-7 7 7 7"/>',
+  "chevron-right": '<path d="m9 5 7 7-7 7"/>',
   right: '<path d="m9 5 7 7-7 7"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   pin: '<path d="M9 4h6l-1 6 4 3H6l4-3zM12 13v7"/>',
