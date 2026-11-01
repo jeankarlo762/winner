@@ -180,21 +180,26 @@ step("tema escuro: " + theme);
 // Widget do iPhone: gera o script e lê os dados com o token dele.
 await page.goto(BASE + "/perfil");
 await page.click("text=Widget no iPhone");
-await page.click("button:has-text('Gerar e copiar script')");
-const script = await page.locator("textarea.code").inputValue();
-await shot("15-widget");
-const token = script.match(/wgt_[A-Za-z0-9_-]+/)[0];
-writeFileSync(SHOTS + "/widget.js", script);
 const kinds = {};
-for (const tipo of ["tarefas", "rotina", "habitos"]) {
-  const r = await page.request.get(BASE + `/api/widget?tipo=${tipo}&agora=00:01`, { headers: { authorization: "Bearer " + token } });
+const tokens = [];
+for (const [tipo, label] of [["habitos", "Hábitos"], ["tarefas", "Tarefas"], ["rotina", "Rotina"]]) {
+  await page.click(`[role=radio]:has-text('${label}')`);
+  await page.click(`button:has-text('Criar widget de ${label}')`);
+  await page.waitForSelector(`text=Script “Winner ${label}”`);
+  const script = await page.locator("textarea.code").inputValue();
+  if (!script.includes(`const TIPO = "${tipo}"`)) throw new Error("tipo não gravado no script " + tipo);
+  if (tipo === "habitos") { await shot("15-widget"); writeFileSync(SHOTS + "/widget.js", script); }
+  tokens.push(script.match(/wgt_[A-Za-z0-9_-]+/)[0]);
+}
+// Todos os widgets criados continuam funcionando.
+for (const [i, tipo] of ["habitos", "tarefas", "rotina"].entries()) {
+  const r = await page.request.get(BASE + `/api/widget?tipo=${tipo}&agora=00:01`, { headers: { authorization: "Bearer " + tokens[i] } });
   if (!r.ok()) throw new Error("widget " + tipo + " " + r.status());
-  const j = await r.json();
-  kinds[tipo] = j.items.length;
+  kinds[tipo] = (await r.json()).items.length;
 }
 const bad = await page.request.get(BASE + "/api/widget?tipo=tarefas", { headers: { authorization: "Bearer wgt_errado" } });
 if (bad.status() !== 401) throw new Error("token inválido aceito");
-step(`widget: tarefas ${kinds.tarefas}, rotina ${kinds.rotina}, hábitos ${kinds.habitos} (token errado recusado)`);
+step(`widgets escolhidos: hábitos ${kinds.habitos}, tarefas ${kinds.tarefas}, rotina ${kinds.rotina} (token errado recusado)`);
 await cdp.send("WebAuthn.setAutomaticPresenceSimulation", { authenticatorId, enabled: false });
 await page.goto(BASE + "/perfil");
 await page.click("text=Sair");

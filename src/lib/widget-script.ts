@@ -1,12 +1,15 @@
 // Script do app Scriptable (iPhone) que desenha o widget do Winner.
-// No widget, o campo "Parameter" escolhe o conteúdo: tarefas, rotina ou habitos.
-export function widgetScript(origin: string, token: string) {
-  return `// Winner — widget para o Scriptable
-// Parâmetro do widget: tarefas, rotina ou habitos
+// O tipo (tarefas, rotina ou habitos) é escolhido no app ao gerar o script.
+export type WidgetKind = "tarefas" | "rotina" | "habitos";
+export const WIDGET_LABEL: Record<WidgetKind, string> = { tarefas: "Tarefas", rotina: "Rotina", habitos: "Hábitos" };
+
+export function widgetScript(origin: string, token: string, kind: WidgetKind) {
+  return `// Winner — widget de ${WIDGET_LABEL[kind]} para o Scriptable
 const URL_APP = ${JSON.stringify(origin)};
 const TOKEN = ${JSON.stringify(token)};
+const TIPO = ${JSON.stringify(kind)};
 
-const kind = ((args.widgetParameter || "tarefas") + "").trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+const kind = ((args.widgetParameter || TIPO) + "").trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
 const pad = (n) => String(n).padStart(2, "0");
 const d = new Date();
 const today = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());

@@ -135,3 +135,7 @@ create table if not exists widget_tokens (
   user_id uuid not null unique references users(id) on delete cascade,
   created_at timestamptz not null default now()
 );
+-- Um token por widget criado (cada tipo tem seu script), para gerar um novo não derrubar os outros.
+alter table widget_tokens drop constraint if exists widget_tokens_user_id_key;
+alter table widget_tokens add column if not exists kind text not null default 'tarefas';
+create index if not exists widget_tokens_user on widget_tokens(user_id);

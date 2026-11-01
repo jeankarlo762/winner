@@ -4,31 +4,30 @@ import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { useUI } from "@/components/UI";
 import { api, useData } from "@/lib/client";
-import { widgetScript } from "@/lib/widget-script";
+import { WIDGET_LABEL, widgetScript, type WidgetKind } from "@/lib/widget-script";
 
-const STEPS = [
-  "Instale o app gratuito Scriptable pela App Store.",
-  "Toque em “Gerar e copiar script” aqui embaixo.",
-  "No Scriptable, toque em +, cole o script e dê o nome “Winner”.",
-  "Na tela de início, segure o dedo num espaço vazio, toque em Editar → Adicionar Widget → Scriptable e escolha o tamanho.",
-  "Segure o widget → Editar Widget: em Script escolha “Winner” e em Parameter escreva tarefas, rotina ou habitos.",
+const KINDS: { kind: WidgetKind; icon: string; desc: string }[] = [
+  { kind: "habitos", icon: "habit", desc: "Hábitos do dia, sequências e dias livre dos hábitos ruins." },
+  { kind: "tarefas", icon: "tasks", desc: "Tarefas de hoje com horário e o que já foi feito." },
+  { kind: "rotina", icon: "clock", desc: "O que está acontecendo agora e o resto do dia." },
 ];
 
 export default function WidgetPage() {
   const { toast } = useUI();
-  const status = useData<{ active: boolean }>("/api/widget/token");
-  const [script, setScript] = useState<string | null>(null);
+  const status = useData<{ active: boolean; count: number }>("/api/widget/token");
+  const [kind, setKind] = useState<WidgetKind>("tarefas");
+  const [made, setMade] = useState<{ kind: WidgetKind; script: string } | null>(null);
+  const name = `Winner ${WIDGET_LABEL[kind]}`;
 
   async function generate() {
-    if (status.data?.active && !confirm("Gerar um novo script? Widgets já instalados com o script antigo vão parar de funcionar até você colar o novo.")) return;
     try {
-      const { token } = await api<{ token: string }>("/api/widget/token", { method: "POST" });
-      const text = widgetScript(window.location.origin, token);
-      setScript(text);
+      const { token } = await api<{ token: string }>("/api/widget/token", { method: "POST", body: { kind } });
+      const script = widgetScript(window.location.origin, token, kind);
+      setMade({ kind, script });
       status.reload();
       try {
-        await navigator.clipboard.writeText(text);
-        toast("Script copiado. Agora cole no Scriptable.");
+        await navigator.clipboard.writeText(script);
+        toast(`Script de ${WIDGET_LABEL[kind]} copiado`);
       } catch {
         toast("Script gerado. Toque em Copiar.");
       }
@@ -38,14 +37,14 @@ export default function WidgetPage() {
   }
 
   async function copy() {
-    if (!script) return;
-    await navigator.clipboard.writeText(script).then(() => toast("Script copiado"), () => toast("Selecione o texto e copie"));
+    if (!made) return;
+    await navigator.clipboard.writeText(made.script).then(() => toast("Script copiado"), () => toast("Selecione o texto e copie"));
   }
 
   async function revoke() {
-    if (!confirm("Desconectar todos os widgets? Eles vão mostrar um erro até você gerar um novo script.")) return;
+    if (!confirm("Desconectar todos os widgets? Eles vão mostrar um erro até você criar de novo.")) return;
     await api("/api/widget/token", { method: "DELETE" });
-    setScript(null);
+    setMade(null);
     status.reload();
     toast("Widgets desconectados");
   }
@@ -54,32 +53,47 @@ export default function WidgetPage() {
     <>
       <Link className="back" href="/perfil" aria-label="Voltar"><Icon name="back" /></Link>
       <h1 className="h2" style={{ marginTop: 8 }}>Widget no iPhone</h1>
-      <p className="sub" style={{ marginTop: 4 }}>Veja suas tarefas, sua rotina ou seus hábitos na tela de início, sem abrir o app. Você pode ter um widget de cada.</p>
+      <p className="sub" style={{ marginTop: 4 }}>Escolha o que o widget vai mostrar na tela de início. Para ter mais de um, crie um de cada tipo.</p>
 
-      <div className="card" style={{ marginTop: 18 }}>
-        <ol className="steps">
-          {STEPS.map((s, i) => <li key={i}>{s}</li>)}
-        </ol>
+      <p className="eyebrow" style={{ margin: "20px 0 8px" }}>Tipo de widget</p>
+      <div className="stack" role="radiogroup" aria-label="Tipo de widget" style={{ gap: 10 }}>
+        {KINDS.map((k) => (
+          <button key={k.kind} className="option" role="radio" aria-checked={kind === k.kind} aria-pressed={kind === k.kind} onClick={() => setKind(k.kind)}>
+            <span className="ic" style={{ width: 38, height: 38, borderRadius: 12, background: "var(--accent-soft)", color: "var(--accent)", display: "grid", placeItems: "center", flex: "none" }}><Icon name={k.icon} size={20} /></span>
+            <span className="grow"><b>{WIDGET_LABEL[k.kind]}</b><span className="d">{k.desc}</span></span>
+            <span className="radio" />
+          </button>
+        ))}
       </div>
 
-      <div className="stack" style={{ marginTop: 18 }}>
-        <a className="btn btn-ghost" href="https://apps.apple.com/app/scriptable/id1405459188" target="_blank" rel="noreferrer">Abrir Scriptable na App Store</a>
-        <button className="btn btn-primary" onClick={generate}>Gerar e copiar script</button>
-      </div>
+      <button className="btn btn-primary" style={{ marginTop: 18, width: "100%" }} onClick={generate}>Criar widget de {WIDGET_LABEL[kind]}</button>
 
-      {script && (
+      {made && (
         <div className="card" style={{ marginTop: 14 }}>
           <div className="between" style={{ marginBottom: 8 }}>
-            <b>Script do widget</b>
+            <b>Script “Winner {WIDGET_LABEL[made.kind]}”</b>
             <button className="link" onClick={copy}>Copiar</button>
           </div>
-          <textarea className="code" readOnly value={script} aria-label="Script do widget" onFocus={(e) => e.currentTarget.select()} />
-          <p className="hint" style={{ marginTop: 8 }}>Este script dá acesso só para leitura aos seus dados. Não compartilhe com outras pessoas.</p>
+          <textarea className="code" readOnly value={made.script} aria-label="Script do widget" onFocus={(e) => e.currentTarget.select()} />
+          <p className="hint" style={{ marginTop: 8 }}>Dá acesso só para leitura aos seus dados. Não compartilhe com outras pessoas.</p>
         </div>
       )}
 
+      <p className="eyebrow" style={{ margin: "22px 0 8px" }}>Como instalar</p>
+      <div className="card">
+        <ol className="steps">
+          <li>Instale o app gratuito <a className="link" href="https://apps.apple.com/app/scriptable/id1405459188" target="_blank" rel="noreferrer">Scriptable</a>.</li>
+          <li>Escolha o tipo acima e toque em “Criar widget”. O script é copiado.</li>
+          <li>No Scriptable, toque em +, cole o script e dê o nome “{made ? `Winner ${WIDGET_LABEL[made.kind]}` : name}”.</li>
+          <li>Na tela de início, segure num espaço vazio → Editar → Adicionar Widget → Scriptable, e escolha o tamanho.</li>
+          <li>Segure o widget → Editar Widget → em Script, escolha “{made ? `Winner ${WIDGET_LABEL[made.kind]}` : name}”.</li>
+        </ol>
+      </div>
+
       {status.data?.active && (
-        <button className="link" style={{ marginTop: 18, color: "var(--bad)" }} onClick={revoke}>Desconectar widgets</button>
+        <button className="link" style={{ marginTop: 18, color: "var(--bad)" }} onClick={revoke}>
+          Desconectar {status.data.count > 1 ? `os ${status.data.count} widgets` : "o widget"}
+        </button>
       )}
     </>
   );

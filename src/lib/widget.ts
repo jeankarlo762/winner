@@ -23,12 +23,14 @@ export interface WidgetData {
 
 const sha = (t: string) => createHash("sha256").update(t).digest("hex");
 
-/** Gera um token novo (o anterior para de funcionar). */
-export async function issueWidgetToken(userId: string) {
+/** Gera um token novo para um widget (os widgets já criados continuam funcionando). */
+export async function issueWidgetToken(userId: string, kind: WidgetKind) {
   const token = "wgt_" + randomBytes(32).toString("base64url");
+  await q("insert into widget_tokens (id, user_id, kind) values ($1, $2, $3)", [sha(token), userId, kind]);
+  // Limita a 20 widgets por pessoa: apaga os mais antigos.
   await q(
-    "insert into widget_tokens (id, user_id) values ($1, $2) on conflict (user_id) do update set id = excluded.id, created_at = now()",
-    [sha(token), userId],
+    "delete from widget_tokens where user_id = $1 and id not in (select id from widget_tokens where user_id = $1 order by created_at desc limit 20)",
+    [userId],
   );
   return token;
 }
@@ -37,8 +39,9 @@ export async function revokeWidgetToken(userId: string) {
   await q("delete from widget_tokens where user_id = $1", [userId]);
 }
 
-export async function hasWidgetToken(userId: string) {
-  return !!(await one("select 1 from widget_tokens where user_id = $1", [userId]));
+export async function widgetCount(userId: string) {
+  const r = await one<{ n: number }>("select count(*)::int as n from widget_tokens where user_id = $1", [userId]);
+  return r?.n ?? 0;
 }
 
 export async function widgetUser(req: Request): Promise<string | null> {
