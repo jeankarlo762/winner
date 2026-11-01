@@ -1,5 +1,5 @@
 // Winner: service worker simples. Páginas e dados vêm da rede; se cair, mostra a última versão salva.
-const CACHE = "winner-v1";
+const CACHE = "winner-v2";
 const SHELL = ["/hoje", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {

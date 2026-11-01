@@ -50,11 +50,6 @@ export function Icon({ name, size, className = "i", style }: { name: string; siz
 }
 
 export function Logo({ size = 40 }: { size?: number }) {
-  return (
-    <span className="logo" style={{ width: size, height: size, borderRadius: size * 0.3 }}>
-      <svg viewBox="0 0 24 24">
-        <polyline points="4,8 8.5,17 12,10.5 15.5,17 20,8" />
-      </svg>
-    </span>
-  );
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className="logo-img" src="/icons/logo.png" alt="Winner" width={size} height={size} />;
 }
