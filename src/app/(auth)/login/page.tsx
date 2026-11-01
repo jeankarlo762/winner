@@ -5,11 +5,13 @@ import { browserSupportsWebAuthn, browserSupportsWebAuthnAutofill, startAuthenti
 import { Icon, Logo } from "@/components/Icon";
 import { ThemeButton } from "@/components/Theme";
 import { api } from "@/lib/client";
+import { faceRemembered, rememberFace, takeLoggedOut } from "@/lib/passkey-client";
 
 async function passkeyLogin(autofill: boolean) {
   const optionsJSON = await api<Parameters<typeof startAuthentication>[0]["optionsJSON"]>("/api/auth/passkey/login-options", { method: "POST" });
   const response = await startAuthentication({ optionsJSON, useBrowserAutofill: autofill });
   await api("/api/auth/passkey/login", { method: "POST", body: { response } });
+  rememberFace(true);
 }
 
 export default function LoginPage() {
@@ -19,16 +21,38 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [canPasskey, setCanPasskey] = useState(false);
 
+  const [auto, setAuto] = useState(false);
+
   useEffect(() => {
-    setCanPasskey(browserSupportsWebAuthn());
+    const supported = browserSupportsWebAuthn();
+    setCanPasskey(supported);
+    let alive = true;
     // No iPhone, o Face ID aparece direto no teclado ao tocar no campo de usuário.
-    browserSupportsWebAuthnAutofill().then((ok) => {
-      if (!ok) return;
-      passkeyLogin(true)
+    const autofill = () =>
+      browserSupportsWebAuthnAutofill().then((ok) => {
+        if (!ok || !alive) return;
+        passkeyLogin(true)
+          .then(() => (window.location.href = "/hoje"))
+          .catch(() => {});
+      });
+    // Face ID já configurado neste aparelho: entra direto, sem perguntar.
+    const leaving = takeLoggedOut();
+    if (supported && faceRemembered() && !leaving) {
+      setAuto(true);
+      passkeyLogin(false)
         .then(() => (window.location.href = "/hoje"))
-        .catch(() => {});
-    });
-    return () => WebAuthnAbortService.cancelCeremony();
+        .catch(() => {
+          if (!alive) return;
+          setAuto(false);
+          autofill();
+        });
+    } else {
+      autofill();
+    }
+    return () => {
+      alive = false;
+      WebAuthnAbortService.cancelCeremony();
+    };
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -56,6 +80,19 @@ export default function LoginPage() {
       setBusy(false);
     }
   }
+
+  if (auto)
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", paddingTop: 120, gap: 18 }}>
+        <div style={{ width: 96, height: 96, borderRadius: 28, background: "var(--accent-soft)", display: "grid", placeItems: "center", color: "var(--accent)" }}>
+          <Icon name="face" size={48} />
+        </div>
+        <h1 className="h2">Entrando com Face ID...</h1>
+        <button className="btn btn-ghost" type="button" onClick={() => { WebAuthnAbortService.cancelCeremony(); }}>
+          Usar senha
+        </button>
+      </div>
+    );
 
   return (
     <>

@@ -8,7 +8,7 @@ import { useUser } from "@/components/Shell";
 import { useTheme } from "@/components/Theme";
 import { useUI } from "@/components/UI";
 import { api, useData } from "@/lib/client";
-import { enablePasskey, passkeyError } from "@/lib/passkey-client";
+import { enablePasskey, markLoggedOut, passkeyError, rememberFace } from "@/lib/passkey-client";
 
 interface Passkey { id: string; device_name: string; created_at: string; last_used_at: string | null }
 
@@ -44,6 +44,7 @@ export default function Perfil() {
     try {
       if (hasFace) {
         await api("/api/passkeys", { method: "DELETE" });
+        rememberFace(false);
         toast("Face ID desativado");
       } else {
         await enablePasskey();
@@ -66,6 +67,7 @@ export default function Perfil() {
   }
   async function logout() {
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+    markLoggedOut();
     // Apaga a cópia offline para o próximo usuário do aparelho não ver seus dados.
     if ("caches" in window) await caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k)))).catch(() => {});
     window.location.href = "/login";

@@ -193,6 +193,12 @@ await cdp.send("WebAuthn.setAutomaticPresenceSimulation", { authenticatorId, ena
 await page.click("button:has-text('Entrar com Face ID')");
 await page.waitForURL(/hoje/, { timeout: 10000 });
 step("login com Face ID (passkey)");
+// Sessão expirada / app reaberto: com Face ID configurado, entra sozinho sem perguntar.
+await ctx.clearCookies();
+await page.evaluate(() => sessionStorage.clear());
+await page.goto(BASE + "/login");
+await page.waitForURL(/hoje/, { timeout: 10000 });
+step("app reaberto entra direto com Face ID");
 
 await browser.close();
 if (errors.length) {
