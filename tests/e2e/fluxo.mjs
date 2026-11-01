@@ -1,0 +1,178 @@
+// Teste de ponta a ponta: cadastro, Face ID (autenticador virtual), onboarding, módulos e login.
+// Uso: BASE=http://localhost:3000 node tests/e2e/fluxo.mjs [pasta-para-prints]
+import { createRequire } from "node:module";
+
+// Playwright vem do ambiente (npx playwright ou instalação global).
+const { chromium } = createRequire(import.meta.url)("playwright");
+
+const BASE = process.env.BASE ?? "http://localhost:3000";
+const SHOTS = process.argv[2];
+const user = "teste" + Date.now().toString().slice(-6);
+const errors = [];
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const page = await ctx.newPage();
+page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
+page.on("console", (m) => m.type() === "error" && !m.text().includes("401") && errors.push("console: " + m.text()));
+const cdp = await ctx.newCDPSession(page);
+await cdp.send("WebAuthn.enable");
+const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", {
+  options: { protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true },
+});
+const shot = async (name) => SHOTS && page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: false });
+const step = (s) => console.log("✓", s);
+
+await page.goto(BASE + "/login");
+await shot("01-login");
+await page.click("text=Criar conta");
+await page.fill("#cd-user", user);
+await page.fill("#cd-mail", user + "@exemplo.com");
+await page.fill("#cd-pass", "SenhaForte#24");
+await page.fill("#cd-pass2", "SenhaForte#24");
+await page.check("#cd-terms");
+await shot("02-cadastro");
+await page.click("button:has-text('Criar conta')");
+await page.waitForURL(/faceid|onboarding/);
+step("cadastro → " + new URL(page.url()).pathname);
+if (page.url().includes("faceid")) {
+  await shot("03-faceid");
+  await page.click("button:has-text('Ativar Face ID')");
+  await page.waitForURL(/onboarding/);
+  step("Face ID ativado");
+}
+await page.fill("input[aria-label='Seu nome']", "Jean");
+await shot("04-pergunta-1");
+await page.click("text=Continuar");
+await page.fill("#q-wake", "06:00");
+await page.fill("#q-sleep", "22:30");
+await page.click("text=Continuar");
+await page.click("text=Empreendedor");
+await page.click("text=Continuar");
+for (const a of ["Saúde", "Finanças", "Relacionamentos"]) await page.click(`.chip:has-text('${a}')`);
+await page.click("text=Continuar");
+await page.click("text=Entrar em forma");
+await page.click("text=Continuar");
+await page.click(".option:has-text('Manhã')");
+await page.click("text=Continuar");
+for (const a of ["Treinar", "Ler"]) await page.click(`.chip:has-text('${a}')`);
+for (const a of ["Refrigerante", "Dormir tarde"]) await page.click(`.chip.bad:has-text('${a}')`);
+await shot("05-pergunta-habitos");
+await page.click("text=Continuar");
+await page.click("text=Concluir");
+await page.waitForURL(/montagem/);
+await page.waitForSelector("text=Prévia da sua rotina");
+await shot("06-montagem");
+step("onboarding concluído");
+
+await page.click("text=Começar pela rotina");
+await page.waitForSelector(".block");
+await shot("07-rotina");
+const blocks = await page.locator(".block").count();
+step(`rotina sugerida com ${blocks} atividades no dia`);
+await page.click("[aria-label='Nova atividade']");
+await page.fill("#f-title", "Inglês");
+await page.fill("#f-s", "19:30");
+await page.fill("#f-e", "20:15");
+await page.click(".chip:has-text('Estudo')");
+await page.click(".sheet button[type=submit]");
+await page.waitForSelector(".toast");
+step("atividade criada");
+await page.click("text=Salvar rotina e ir para tarefas");
+await page.waitForURL(/montagem/);
+await page.click("text=Continuar");
+await page.waitForURL(/tarefas/);
+await page.waitForSelector(".item");
+await page.click("[aria-label='Nova tarefa']");
+await page.fill("#f-t", "Pagar fornecedores");
+await page.click(".seg button:has-text('Quinzenal')");
+await page.selectOption("#f-p", "high");
+await shot("08-nova-tarefa");
+await page.click(".sheet button[type=submit]");
+await page.waitForSelector(".toast");
+await page.click(".seg button:has-text('Quinzenais')");
+await page.waitForSelector(".item:has-text('Pagar fornecedores')");
+await page.click(".item:has-text('Pagar fornecedores') .check");
+await page.waitForSelector(".item.done:has-text('Pagar fornecedores')");
+await shot("09-tarefas");
+step("tarefa quinzenal criada e concluída");
+await page.click("text=Salvar tarefas e ir para hábitos");
+await page.waitForURL(/montagem/);
+await page.click("text=Continuar");
+await page.waitForURL(/habitos/);
+await page.click(".seg button:has-text('Desejados')");
+await page.waitForSelector(".hcard:has-text('Treinar')");
+await page.click(".hcard:has-text('Treinar') button:has-text('Marcar como feito hoje')");
+await page.waitForSelector(".hcard:has-text('Treinar') button:has-text('Feito hoje')");
+await page.click(".seg button:has-text('Ruins')");
+await page.waitForSelector(".badcard:has-text('Refrigerante')");
+await page.click(".badcard:has-text('Refrigerante') button:has-text('Tive uma recaída')");
+await page.fill(".badcard input", "Almoço fora");
+await shot("10-habito-ruim");
+await page.click(".badcard button:has-text('Registrar')");
+await page.waitForSelector(".toast:has-text('Recaída')");
+step("hábito desejado marcado e recaída registrada");
+await page.click("text=Concluir e ver meu dia");
+await page.waitForURL(/hoje/);
+await page.waitForSelector(".rings");
+await shot("11-hoje");
+step("tela Hoje carregada");
+
+await page.click(".fab");
+await page.click(".type-grid button:has-text('Lembrete')");
+await page.fill("#f-l", "Ligar para o contador");
+await page.click(".sheet button[type=submit]");
+await page.waitForSelector(".toast");
+await page.goto(BASE + "/lembretes");
+await page.waitForSelector("text=Ligar para o contador");
+await shot("12-lembretes");
+step("lembrete criado");
+await page.goto(BASE + "/notas");
+await page.click("[aria-label='Nova nota']");
+await page.fill("#f-nt", "Metas de 90 dias");
+await page.fill("#f-nb", "Organizar a empresa e treinar 5x por semana.");
+await page.fill("#f-tag", "Metas");
+await page.check("text=Fixar no topo");
+await page.click(".sheet button[type=submit]");
+await page.waitForSelector(".note:has-text('Metas de 90 dias')");
+await shot("13-notas");
+step("nota criada");
+
+await page.goto(BASE + "/perfil");
+await page.waitForSelector("text=Entrar com Face ID");
+await page.click("[aria-label='Modo escuro']");
+await page.goto(BASE + "/hoje");
+await page.waitForSelector(".rings");
+await shot("14-hoje-escuro");
+const theme = await page.evaluate(() => document.documentElement.dataset.theme);
+step("tema escuro: " + theme);
+// Sem toque do usuário, o Face ID do preenchimento automático fica esperando (como no iPhone).
+await cdp.send("WebAuthn.setAutomaticPresenceSimulation", { authenticatorId, enabled: false });
+await page.goto(BASE + "/perfil");
+await page.click("text=Sair");
+await page.waitForURL(/login/);
+await page.waitForTimeout(1500);
+step("saiu (" + new URL(page.url()).pathname + ")");
+
+await page.fill("#lg-user", user);
+await page.fill("#lg-pass", "errada123");
+await page.click("button[type=submit]");
+await page.waitForSelector(".error");
+await page.fill("#lg-pass", "SenhaForte#24");
+await page.click("button[type=submit]");
+await page.waitForURL(/hoje/);
+step("login com senha (e senha errada recusada)");
+await page.goto(BASE + "/perfil");
+await page.click("text=Sair");
+await page.waitForURL(/login/);
+await page.waitForTimeout(1000);
+await cdp.send("WebAuthn.setAutomaticPresenceSimulation", { authenticatorId, enabled: true });
+await page.click("button:has-text('Entrar com Face ID')");
+await page.waitForURL(/hoje/, { timeout: 10000 });
+step("login com Face ID (passkey)");
+
+await browser.close();
+if (errors.length) {
+  console.log("Erros no navegador:\n" + errors.join("\n"));
+  process.exit(1);
+}
+console.log("Tudo certo.");
