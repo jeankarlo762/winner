@@ -8,12 +8,13 @@ export interface TaskRow extends RecurringTask {
   title: string;
   notes: string;
   time: string | null;
+  end_time: string | null;
   priority: "normal" | "high";
 }
 
 export async function tasksView(userId: string, today: ISODate) {
   const tasks = await q<TaskRow>(
-    "select id, title, notes, recurrence, weekdays, month_day, anchor_date, time, priority from tasks where user_id = $1 and not archived order by time nulls last, created_at",
+    "select id, title, notes, recurrence, weekdays, month_day, anchor_date, time, end_time, priority from tasks where user_id = $1 and not archived order by time nulls last, created_at",
     [userId],
   );
   const done = await q<{ task_id: string; occurrence: string }>(
@@ -27,7 +28,7 @@ export async function tasksView(userId: string, today: ISODate) {
       const isDone = occurrence ? doneSet.has(t.id + "|" + occurrence) : false;
       return {
         ...t,
-        label: describe(t, t.time),
+        label: describe(t),
         dueToday: isDueOn(t, today),
         occurrence,
         done: isDone,

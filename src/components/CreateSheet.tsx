@@ -32,6 +32,7 @@ function defaults(type: SheetType, item?: Item): Item {
       const d = new Date(item.remind_at as string);
       return { ...item, date: localToday(d), time: hhmm(d) };
     }
+    if (type === "tarefa" && !item.time) return { ...item, time: "09:00", end_time: "09:30" };
     return { ...item };
   }
   const today = localToday();
@@ -39,7 +40,13 @@ function defaults(type: SheetType, item?: Item): Item {
     case "atividade":
       return { title: "", start_time: "07:00", end_time: "08:00", weekdays: [1, 2, 3, 4, 5], category: "pessoal" };
     case "tarefa":
-      return { title: "", recurrence: "daily", weekdays: [new Date().getDay()], month_day: new Date().getDate(), anchor_date: today, time: "", priority: "normal", notes: "" };
+    {
+      const s = new Date(Date.now() + 60 * 60000);
+      s.setMinutes(0);
+      const e = new Date(s.getTime() + 60 * 60000);
+      const end = s.getHours() === 23 ? "23:59" : hhmm(e);
+      return { title: "", recurrence: "daily", weekdays: [new Date().getDay()], month_day: new Date().getDate(), anchor_date: today, time: hhmm(s), end_time: end, priority: "normal", notes: "" };
+    }
     case "habito":
       return { kind: "good", name: "", per_week: 7, time: "", reason: "", triggers: "", replacement: "", start_date: today };
     case "lembrete": {
@@ -65,6 +72,7 @@ function payload(type: SheetType, f: Item): Item {
         month_day: r === "monthly" ? Number(f.month_day) : null,
         anchor_date: f.anchor_date,
         time: f.time || null,
+        end_time: f.end_time || null,
         priority: f.priority,
       };
     }
@@ -259,16 +267,19 @@ export function CreateSheet({
               </Field>
             )}
             <div className="two">
-              <Field id="f-h" label="Horário (opcional)">
-                <input id="f-h" type="time" value={(f.time as string) ?? ""} onChange={(e) => set("time", e.target.value)} />
+              <Field id="f-h" label="Começa">
+                <input id="f-h" type="time" required value={(f.time as string) ?? ""} onChange={(e) => set("time", e.target.value)} />
               </Field>
-              <Field id="f-p" label="Prioridade">
-                <select id="f-p" value={f.priority as string} onChange={(e) => set("priority", e.target.value)}>
-                  <option value="normal">Normal</option>
-                  <option value="high">Alta</option>
-                </select>
+              <Field id="f-he" label="Termina">
+                <input id="f-he" type="time" required value={(f.end_time as string) ?? ""} onChange={(e) => set("end_time", e.target.value)} />
               </Field>
             </div>
+            <Field id="f-p" label="Prioridade">
+              <select id="f-p" value={f.priority as string} onChange={(e) => set("priority", e.target.value)}>
+                <option value="normal">Normal</option>
+                <option value="high">Alta</option>
+              </select>
+            </Field>
           </>
         )}
 

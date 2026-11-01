@@ -8,7 +8,7 @@ Webapp (PWA) para organizar rotina, tarefas recorrentes, hábitos, lembretes e n
 - **Face ID / Touch ID:** chaves de acesso (passkeys, WebAuthn). No iPhone, o Face ID aparece direto no campo de usuário e no botão "Entrar com Face ID". Ativa depois do cadastro ou no Perfil.
 - **Onboarding:** 8 perguntas que geram uma rotina, tarefas e hábitos iniciais. Depois, montagem guiada em 3 passos (rotina, tarefas, hábitos).
 - **Rotina:** atividades fixas com início e fim, dias da semana e categoria, com aviso de horário em conflito e destaque da atividade de agora.
-- **Tarefas:** diárias, semanais (dias escolhidos), quinzenais (a cada 15 dias), mensais (dia do mês ou último dia) e únicas. Ao concluir, a próxima ocorrência aparece sozinha.
+- **Tarefas:** com horário de início e fim; editar e excluir direto na lista; diárias, semanais (dias escolhidos), quinzenais (a cada 15 dias), mensais (dia do mês ou último dia) e únicas. Ao concluir, a próxima ocorrência aparece sozinha.
 - **Hábitos:** bons (sequência e semana), desejados (meta de 21 dias seguidos e opção de virar hábito bom) e ruins (contador de dias limpo, recorde, gatilhos, substituto, "venci a vontade" e registro de recaída).
 - **Lembretes:** data, hora e repetição; adiar 10 min, 1 h ou para amanhã.
 - **Notas:** etiqueta, fixar no topo e busca.

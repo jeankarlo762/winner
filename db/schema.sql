@@ -69,6 +69,8 @@ create table if not exists tasks (
   created_at timestamptz not null default now()
 );
 create index if not exists tasks_user_idx on tasks(user_id);
+-- Tarefas são atividades em um momento do dia: início (time) e fim (end_time).
+alter table tasks add column if not exists end_time text;
 
 create table if not exists task_completions (
   task_id uuid not null references tasks(id) on delete cascade,

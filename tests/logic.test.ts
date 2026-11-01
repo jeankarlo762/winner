@@ -55,3 +55,7 @@ test("rotina sugerida pelo onboarding", () => {
   assert.ok(r.some((x) => x.title === "Leitura" && x.start === "21:45"));
   assert.ok(r.some((x) => x.title === "Dormir" && x.end === "06:00"));
 });
+
+test("descrição com intervalo de horário", () => {
+  assert.equal(describe({ recurrence: "daily", weekdays: [], month_day: null, anchor_date: "2026-11-01" }, "08:00", "09:00"), "Todo dia · 08:00–09:00");
+});

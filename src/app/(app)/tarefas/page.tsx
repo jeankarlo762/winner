@@ -47,7 +47,7 @@ export default function Tarefas() {
           Toque em + para criar.
         </div>
       )}
-      <p className="hint" style={{ marginTop: 12 }}>Ao concluir, a tarefa volta sozinha na próxima data. Toque no nome para editar.</p>
+      <p className="hint" style={{ marginTop: 12 }}>Ao concluir, a tarefa volta sozinha na próxima data. Use o lápis para editar e a lixeira para excluir.</p>
       <Suspense>
         <SetupNext step={2} label="Salvar tarefas e ir para hábitos" />
       </Suspense>

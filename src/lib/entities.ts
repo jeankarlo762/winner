@@ -49,10 +49,15 @@ export const parsers: Record<string, Parser> = {
       return v;
     }, o);
     pick(b, partial, "anchor_date", date("Data inicial"), o);
-    pick(b, partial, "time", time("Horário", true), o);
+    pick(b, partial, "time", time("Horário de início", true), o);
+    pick(b, partial, "end_time", time("Horário de fim", true), o);
     pick(b, partial, "priority", (v) => oneOf(v ?? "normal", "Prioridade", ["normal", "high"] as const), o);
     pick(b, partial, "archived", bool, o);
     if (o.recurrence === "weekly" && Array.isArray(o.weekdays) && !o.weekdays.length) throw new HttpError(400, "Escolha pelo menos um dia da semana.");
+    if ("time" in o || "end_time" in o) {
+      if (!o.time || !o.end_time) throw new HttpError(400, "Informe o horário de início e de fim da tarefa.");
+      if ((o.end_time as string) <= (o.time as string)) throw new HttpError(400, "O horário de fim precisa ser depois do início.");
+    }
     return o;
   },
   habits(b, partial) {

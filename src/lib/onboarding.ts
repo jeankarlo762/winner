@@ -21,7 +21,7 @@ export const WANT = ["Treinar", "Ler", "Meditar", "Acordar cedo", "Beber água",
 export const QUIT = ["Redes sociais em excesso", "Refrigerante", "Procrastinar", "Dormir tarde", "Fumar", "Fast food"];
 
 export interface SuggestedActivity { title: string; start: string; end: string; weekdays: number[]; category: string }
-export interface SuggestedTask { title: string; recurrence: "daily" | "weekly" | "biweekly" | "monthly"; weekdays?: number[]; month_day?: number; time?: string; priority?: "normal" | "high" }
+export interface SuggestedTask { title: string; recurrence: "daily" | "weekly" | "biweekly" | "monthly"; weekdays?: number[]; month_day?: number; time?: string; end_time?: string; priority?: "normal" | "high" }
 export interface SuggestedHabit { name: string; kind: "good" | "desired" | "bad"; per_week?: number; reason?: string; triggers?: string; replacement?: string }
 
 const ALL = [0, 1, 2, 3, 4, 5, 6];
@@ -65,18 +65,19 @@ export function suggestRoutine(a: Answers): SuggestedActivity[] {
 
 export function suggestTasks(a: Answers): SuggestedTask[] {
   const out: SuggestedTask[] = [
-    { title: "Planejar o dia em 5 minutos", recurrence: "daily", time: hm(toMinutes(a.wake) + 60) },
-    { title: "Revisar o dia antes de dormir", recurrence: "daily", time: hm(toMinutes(a.sleep) - 30) },
-    { title: "Revisão da semana", recurrence: "weekly", weekdays: [0], time: "20:00" },
-    { title: "Revisar metas do mês", recurrence: "monthly", month_day: 1 },
+    { title: "Planejar o dia", recurrence: "daily", time: hm(toMinutes(a.wake) + 60), end_time: hm(toMinutes(a.wake) + 70) },
+    { title: "Revisar o dia antes de dormir", recurrence: "daily", time: hm(toMinutes(a.sleep) - 30), end_time: hm(toMinutes(a.sleep) - 15) },
+    { title: "Revisão da semana", recurrence: "weekly", weekdays: [0], time: "20:00", end_time: "20:30" },
+    { title: "Revisar metas do mês", recurrence: "monthly", month_day: 1, time: "20:30", end_time: "21:00" },
   ];
   if (a.areas.includes("Finanças")) {
-    out.push({ title: "Pagar contas do mês", recurrence: "monthly", month_day: 5, priority: "high" });
-    out.push({ title: "Conferir gastos", recurrence: "biweekly" });
+    out.push({ title: "Pagar contas do mês", recurrence: "monthly", month_day: 5, time: "10:00", end_time: "10:30", priority: "high" });
+    out.push({ title: "Conferir gastos", recurrence: "biweekly", time: "19:00", end_time: "19:30" });
   }
-  if (a.occupation === "entrepreneur" || a.occupation === "fixed") out.push({ title: "Reunião de alinhamento", recurrence: "weekly", weekdays: [1], time: "09:00" });
-  if (a.want.includes("Beber água")) out.push({ title: "Beber 2 L de água", recurrence: "daily" });
-  return out;
+  if (a.occupation === "entrepreneur" || a.occupation === "fixed") out.push({ title: "Reunião de alinhamento", recurrence: "weekly", weekdays: [1], time: "09:00", end_time: "09:30" });
+  if (a.want.includes("Beber água")) out.push({ title: "Encher a garrafa de água", recurrence: "daily", time: hm(toMinutes(a.wake) + 30), end_time: hm(toMinutes(a.wake) + 35) });
+  // Um intervalo que passaria da meia-noite termina às 23:59.
+  return out.map((t) => (t.time && t.end_time && t.end_time <= t.time ? { ...t, end_time: "23:59" } : t));
 }
 
 const REPLACE: Record<string, [string, string]> = {

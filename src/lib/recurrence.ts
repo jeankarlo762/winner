@@ -52,8 +52,8 @@ export function nextOccurrence(t: RecurringTask, from: ISODate): ISODate | null 
 const DAY = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 const DAY_FULL = ["Todo domingo", "Toda segunda", "Toda terça", "Toda quarta", "Toda quinta", "Toda sexta", "Todo sábado"];
 
-export function describe(t: RecurringTask, time?: string | null): string {
-  const at = time ? ` · ${time}` : "";
+export function describe(t: RecurringTask, time?: string | null, end?: string | null): string {
+  const at = time ? ` · ${time}${end ? `–${end}` : ""}` : "";
   switch (t.recurrence) {
     case "once":
       return `Uma vez · ${t.anchor_date.split("-").reverse().slice(0, 2).join("/")}${at}`;

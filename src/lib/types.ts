@@ -1,7 +1,7 @@
 export interface Activity { id: string; title: string; start_time: string; end_time: string; weekdays: number[]; category: string }
 export interface Task {
   id: string; title: string; notes: string; recurrence: "once" | "daily" | "weekly" | "biweekly" | "monthly";
-  weekdays: number[]; month_day: number | null; anchor_date: string; time: string | null; priority: "normal" | "high";
+  weekdays: number[]; month_day: number | null; anchor_date: string; time: string | null; end_time: string | null; priority: "normal" | "high";
   label: string; dueToday: boolean; occurrence: string | null; done: boolean; next: string | null; overdue: boolean;
 }
 interface HabitBase { id: string; name: string; per_week: number; time: string | null; reason: string; triggers: string; replacement: string; start_date: string }

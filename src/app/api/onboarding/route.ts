@@ -37,8 +37,8 @@ export const POST = route(async (req) => {
       for (const r of suggestRoutine(a))
         await client.query("insert into routine_activities (user_id, title, start_time, end_time, weekdays, category) values ($1,$2,$3,$4,$5,$6)", [user.id, r.title, r.start, r.end, r.weekdays, r.category]);
       for (const t of suggestTasks(a))
-        await client.query("insert into tasks (user_id, title, recurrence, weekdays, month_day, anchor_date, time, priority) values ($1,$2,$3,$4,$5,$6,$7,$8)", [
-          user.id, t.title, t.recurrence, t.weekdays ?? [], t.month_day ?? null, today, t.time ?? null, t.priority ?? "normal",
+        await client.query("insert into tasks (user_id, title, recurrence, weekdays, month_day, anchor_date, time, end_time, priority) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)", [
+          user.id, t.title, t.recurrence, t.weekdays ?? [], t.month_day ?? null, today, t.time ?? null, t.end_time ?? null, t.priority ?? "normal",
         ]);
       for (const h of suggestHabits(a))
         await client.query("insert into habits (user_id, name, kind, per_week, reason, triggers, replacement, start_date) values ($1,$2,$3,$4,$5,$6,$7,$8)", [
