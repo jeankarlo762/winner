@@ -19,13 +19,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [canPasskey, setCanPasskey] = useState(false);
 
   const [auto, setAuto] = useState(false);
 
   useEffect(() => {
     const supported = browserSupportsWebAuthn();
-    setCanPasskey(supported);
     let alive = true;
     // No iPhone, o Face ID aparece direto no teclado ao tocar no campo de usuário.
     const autofill = () =>
@@ -64,19 +62,6 @@ export default function LoginPage() {
       window.location.href = "/hoje";
     } catch (err) {
       setError((err as Error).message);
-      setBusy(false);
-    }
-  }
-
-  async function face() {
-    setError(null);
-    setBusy(true);
-    try {
-      await passkeyLogin(false);
-      window.location.href = "/hoje";
-    } catch (err) {
-      const e = err as Error;
-      setError(e.name === "NotAllowedError" ? "Face ID cancelado. Tente de novo ou entre com a senha." : e.message);
       setBusy(false);
     }
   }
@@ -126,14 +111,6 @@ export default function LoginPage() {
         <button className="btn btn-primary" type="submit" disabled={busy}>
           {busy ? "Entrando..." : "Entrar"}
         </button>
-        {canPasskey && (
-          <>
-            <div className="divider">ou</div>
-            <button className="btn btn-ghost" type="button" onClick={face} disabled={busy}>
-              <Icon name="face" /> Entrar com Face ID
-            </button>
-          </>
-        )}
       </form>
       <p style={{ textAlign: "center", marginTop: 24 }} className="muted">
         Ainda não tem conta?{" "}

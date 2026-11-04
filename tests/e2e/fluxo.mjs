@@ -220,9 +220,11 @@ await page.click("text=Sair");
 await page.waitForURL(/login/);
 await page.waitForTimeout(1000);
 await cdp.send("WebAuthn.setAutomaticPresenceSimulation", { authenticatorId, enabled: true });
-await page.click("button:has-text('Entrar com Face ID')");
+if (await page.locator("text=Entrar com Face ID").count()) throw new Error("botão de Face ID ainda aparece");
+// Reabrir o app depois de sair: pede o Face ID sozinho.
+await page.reload({ waitUntil: "commit" }).catch(() => {});
 await page.waitForURL(/hoje/, { timeout: 10000 });
-step("login com Face ID (passkey)");
+step("sem botão; ao reabrir entra com Face ID automático");
 // Sessão expirada / app reaberto: com Face ID configurado, entra sozinho sem perguntar.
 await ctx.clearCookies();
 await page.evaluate(() => sessionStorage.clear());

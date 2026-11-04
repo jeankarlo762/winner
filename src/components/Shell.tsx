@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
+import { rememberFace } from "@/lib/passkey-client";
 import { Icon, Logo } from "./Icon";
 import { UIProvider, useUI } from "./UI";
 
@@ -57,6 +58,10 @@ function TabBar() {
 }
 
 export function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
+  // Conta com Face ID: a próxima abertura do app já pede o Face ID sozinha.
+  useEffect(() => {
+    if (user.passkeys > 0) rememberFace(true);
+  }, [user.passkeys]);
   return (
     <UserCtx.Provider value={user}>
       <UIProvider>
